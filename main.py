@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 
 API_URL = "https://frightened-dove-turtleneck-shirt.cyclic.app/proxy/https://api-inference.huggingface.co/models/prompthero/openjourney"
-headers = {"Authorization": "Bearer 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"}
+HEADERS = {"Authorization": "Bearer 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"}
 
 def query(payload):
     response = requests.post(API_URL, headers=HEADERS, json=payload)
