@@ -3,64 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Generator</title>
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+    <title>ImgGenAPI - AI Image Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
-        body {
-            background-color: #1d3c1d; /* dark green color */
-            color: #f5f5dc; /* creamish white color */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: 'Patrick Hand', cursive;
+        .loading {
+            display: none;
         }
-        form {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            border-radius: 10px;
-            background-color: #333;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-        }
-        input, button {
-            margin: 10px 0;
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-        }
-        button {
-            background-color: #f5f5dc;
-            color: #333;
-            cursor: pointer;
-            font-family: 'Patrick Hand', cursive;
-        }
-        img {
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        .loading.active {
+            display: block;
         }
     </style>
 </head>
-<body>
-    <form action="/" method="POST"> <!-- Adjusted action to point to the /img route -->
-        <h1>Image Generator</h1>
-        <label for="prompt">Enter Prompt:</label><br>
-        <input type="text" id="prompt" name="prompt"><br> <!-- Added name attribute for the input field -->
-        <button type="submit">Generate Image</button>
-    </form>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-center mb-8">AI Image Generator</h1>
+        
+        <!-- Generation Form -->
+        <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
+            <form id="generateForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Prompt</label>
+                    <textarea name="prompt" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" rows="3" required></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Size</label>
+                        <select name="size" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="512x512">512x512</option>
+                            <option value="896x896">896x896</option>
+                            <option value="1024x1024">1024x1024</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Number of Images</label>
+                        <select name="num_images" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="4">4</option>
+                        </select>
+                    </div>
 
-    <!-- Display loading message -->
-    {% if loading_message %}
-    <p>{{ loading_message }}</p>
-    {% endif %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Quality Steps</label>
+                        <select name="num_inference_steps" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="20">Fast</option>
+                            <option value="30" selected>Balanced</option>
+                            <option value="40">High Quality</option>
+                        </select>
+                    </div>
 
-    <!-- Display the generated image if available -->
-    {% if image_path %}
-    <h2>Generated Image:</h2>
-    <img src="{{ url_for('static', filename=image_path) }}" alt="Generated Image">
-    {% endif %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Prompt Adherence</label>
+                        <select name="guidance_scale" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="5">More Creative</option>
+                            <option value="7.5" selected>Balanced</option>
+                            <option value="9">More Precise</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Negative Prompt</label>
+                    <textarea name="negative_prompt" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" rows="2" placeholder="What you don't want in the image (optional)"></textarea>
+                </div>
+
+                <button type="submit" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    Generate Image
+                </button>
+            </form>
+
+            <div id="loading" class="loading text-center py-4">
+                <svg class="animate-spin h-8 w-8 mx-auto text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="mt-2 text-gray-600">Generating your image... This might take a few minutes.</p>
+                <p class="mt-1 text-sm text-gray-500">The first generation might take longer as the model warms up.</p>
+            </div>
+
+            <div id="error-message" class="hidden mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md">
+            </div>
+        </div>
+
+        <!-- Generated Image Display -->
+        <div id="result" class="max-w-4xl mx-auto hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Generated Image</h2>
+                <div id="imageContainer" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- Recent Images Gallery -->
+        {% if recent_images %}
+        <div class="mt-12">
+            <h2 class="text-2xl font-bold mb-6">Recent Generations</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {% for image in recent_images %}
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <img src="{{ url_for('static', filename=image[2]) }}" alt="{{ image[1] }}" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <p class="text-sm text-gray-600 truncate">{{ image[1] }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        document.getElementById('generateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const imageContainer = document.getElementById('imageContainer');
+            const errorMessage = document.getElementById('error-message');
+
+            // Hide previous error and results
+            errorMessage.classList.add('hidden');
+            loading.classList.add('active');
+            result.classList.add('hidden');
+
+            try {
+                const formData = new FormData(form);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
+
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    body: formData,
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                imageContainer.innerHTML = `
+                    <img src="${data.image_url}" alt="${data.prompt}" class="w-full rounded-lg">
+                    <p class="mt-2 text-gray-600">${data.prompt}</p>
+                    <a href="${data.image_url}" download class="inline-block mt-2 bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700">
+                        Download Image
+                    </a>
+                `;
+                result.classList.remove('hidden');
+            } catch (error) {
+                let errorMsg = error.message || 'An error occurred while generating the image.';
+                if (error.name === 'AbortError') {
+                    errorMsg = 'The request timed out. The server might be busy, please try again.';
+                }
+                errorMessage.textContent = errorMsg;
+                errorMessage.classList.remove('hidden');
+            } finally {
+                loading.classList.remove('active');
+            }
+        });
+    </script>
 </body>
 </html>
