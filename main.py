@@ -10,7 +10,7 @@ import sqlite3
 app = Flask(__name__)
 
 # Configuration
-API_URL = "https://ghostunblocker.vercel.app//proxy/https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+API_URL = "https://ghostunblocker.vercel.app//proxy/https://api-inference.huggingface.co/models/Artples/LAI-ImageGeneration-vSDXL-2"
 HEADERS = {"Authorization": "Bearer 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"}
 
 # Initialize database
